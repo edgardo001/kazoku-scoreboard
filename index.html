@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dojo Kazoku - Gestión de Combate</title>
+    <style>
+        :root {
+            --aka: #cc0000;
+            --ao: #1976d2;
+            --bg: #121212;
+            --surface: #1e1e1e;
+            --header-bg: #000000;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body, html {
+            margin: 0; padding: 0;
+            height: 100dvh; width: 100vw;
+            background: var(--bg); color: white;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+        }
+
+        .app-container { display: flex; flex-direction: column; height: 100%; }
+
+        /* HEADER */
+        .navbar {
+            height: 55px;
+            background: var(--header-bg);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-bottom: 2px solid var(--aka); flex-shrink: 0;
+            position: relative;
+        }
+        .nav-actions {
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            display: flex; gap: 6px;
+        }
+        .nav-actions button {
+            background: #222; border: 1px solid #444; color: #ddd;
+            width: 34px; height: 34px; border-radius: 6px;
+            font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .nav-actions button.active { background: var(--aka); color: white; border-color: var(--aka); }
+
+        .dojo-brand { display: flex; align-items: center; gap: 8px; }
+        .dojo-logo { height: 38px; width: 38px; border-radius: 50%; object-fit: cover; border: 1px solid var(--aka); }
+        .dojo-title { font-size: 1.1rem; font-weight: 900; letter-spacing: 2px; margin: 0; }
+        .dojo-subtitle { font-size: 0.55rem; color: var(--aka); font-weight: bold; margin-top: -2px; letter-spacing: 2px; }
+
+        /* NAVEGACIÓN */
+        .nav-tabs { display: flex; background: #222; flex-shrink: 0; }
+        .nav-btn { flex:1; background: none; border: none; color: #777; padding: 8px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
+        .nav-btn.active { color: white; background: var(--aka); }
+
+        /* CONTENIDO */
+        .content { flex-grow: 1; overflow: hidden; }
+        .page { display: none; height: 100%; width: 100%; }
+        .page.active { display: flex; }
+
+        .board {
+            display: grid;
+            grid-template-columns: 1fr minmax(240px, 22vw) 1fr;
+            width: 100%; height: 100%;
+        }
+
+        /* LATERALES (AKA / AO) */
+        .side {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 10px;
+            position: relative;
+        }
+
+        .senshu {
+            position: absolute;
+            top: clamp(8px, 1.2vmin, 18px);
+            width: clamp(28px, 4vmin, 70px); height: clamp(28px, 4vmin, 70px);
+            border-radius: 50%;
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.5);
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: clamp(0.6rem, 1.6vmin, 1.6rem); font-weight: 900;
+            color: rgba(255,255,255,0.6);
+            transition: all 0.2s;
+        }
+        .senshu.active {
+            background: #ffeb3b;
+            border-color: #ffeb3b;
+            color: #000;
+            box-shadow: 0 0 12px rgba(255,235,59,0.8);
+        }
+        .aka .senshu { right: 8px; }
+        .ao .senshu { left: 8px; }
+
+        .faults {
+            display: flex; gap: 6px;
+            margin-top: 8px;
+        }
+        .fault {
+            width: clamp(22px, 3vmin, 50px); height: clamp(22px, 3vmin, 50px);
+            border-radius: 50%;
+            background: rgba(0,0,0,0.35);
+            border: 2px solid rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .fault[data-lvl="1"].active { background: #ffeb3b; border-color: #ffeb3b; box-shadow: 0 0 8px rgba(255,235,59,0.7); }
+        .fault[data-lvl="2"].active { background: #ff9800; border-color: #ff9800; box-shadow: 0 0 8px rgba(255,152,0,0.7); }
+        .fault[data-lvl="3"].active { background: #f44336; border-color: #f44336; box-shadow: 0 0 8px rgba(244,67,54,0.7); }
+        .fault[data-lvl="4"].active { background: #7b0000; border-color: #ff1744; box-shadow: 0 0 10px rgba(255,23,68,0.8); }
+        .fault[data-lvl="5"].active { background: #000; border-color: #fff; box-shadow: 0 0 12px rgba(255,255,255,0.9); }
+        .aka { background: linear-gradient(135deg, #880000 0%, #cc0000 100%); }
+        .ao { background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%); }
+
+        .score-val {
+            font-size: min(clamp(4rem, 32vmin, 24rem), 38vh);
+            font-weight: 900; line-height: 0.8;
+            margin-bottom: 15px;
+        }
+
+        .btn-group {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 0.5vmin; width: 100%; max-width: clamp(240px, 30vmin, 520px);
+        }
+
+        .btn-p {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white; border-radius: 6px;
+            padding: clamp(8px, 2.5vmin, 26px) 2px;
+            font-weight: 800; font-size: clamp(1rem, 2.2vmin, 2rem); cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+        }
+        .btn-p small { font-size: clamp(0.55rem, 1.1vmin, 1rem); font-weight: 700; opacity: 0.75; letter-spacing: 0.5px; }
+        .btn-p:active { background: white; color: black; }
+
+        /* PANEL CENTRAL */
+        .center-panel {
+            background: #181818;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: space-around;
+            border-left: 1px solid #333; border-right: 1px solid #333;
+            padding: 5px;
+        }
+
+        .time-presets { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 4px; 
+            width: 90%; 
+        }
+        .btn-preset {
+            background: #333; border: 1px solid #444; color: white;
+            padding: clamp(6px, 1.2vmin, 14px) 0; border-radius: 4px;
+            font-size: clamp(0.65rem, 1.4vmin, 1.2rem); font-weight: bold; cursor: pointer;
+        }
+        .btn-preset:active { background: var(--aka); }
+
+        #timer {
+            font-size: min(7rem, 18cqw, 10vmin);
+            font-family: 'Courier New', monospace; font-weight: 900;
+            background: #000; padding: 0.5em 0.6em; border-radius: 8px; border: 1px solid #333;
+            line-height: 1; white-space: nowrap;
+        }
+        .center-panel { container-type: inline-size; }
+
+        .timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 90%; }
+        .progress-bar {
+            position: relative;
+            width: 100%; height: clamp(6px, 1vmin, 12px);
+            background: linear-gradient(90deg, var(--aka), #ffeb3b 40%, #4caf50);
+            border: 1px solid #333; border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            position: absolute; top: 0; right: 0; bottom: 0;
+            width: 0%;
+            background: #000;
+            transition: width 0.3s linear;
+        }
+
+        .btn-main {
+            width: 90%; padding: clamp(10px, 2vmin, 22px); border-radius: 6px;
+            border: none; background: var(--aka); color: white;
+            font-weight: 900; font-size: clamp(1rem, 2.2vmin, 2rem); cursor: pointer;
+        }
+
+        .flags-box { display: flex; gap: 12px; }
+        .flag { width: 38px; height: 28px; border: 2px solid #444; border-radius: 3px; opacity: 0.2; cursor: pointer; }
+        .flag.red { background: #ff0000; }
+        .flag.white { background: #ffffff; }
+        .flag.active { opacity: 1; border-color: #ffeb3b; box-shadow: 0 0 10px rgba(255,235,59,0.5); }
+
+        .side { overflow: hidden; min-height: 0; }
+
+        /* HORIZONTAL CORTO (móvil landscape) */
+        @media (orientation: landscape) and (max-height: 500px) {
+            .score-val { font-size: min(22vh, 18vmin); margin-bottom: 4px; }
+            .btn-p { padding: 4px 2px; font-size: 0.85rem; }
+            .btn-p small { font-size: 0.5rem; }
+            .faults { margin-top: 4px; gap: 4px; }
+            .fault { width: 18px; height: 18px; }
+            .senshu { width: 24px; height: 24px; font-size: 0.55rem; top: 4px; }
+            .btn-group { max-width: 200px; gap: 4px; }
+            .center-panel { padding: 2px; justify-content: space-between; gap: 2px; }
+            .center-panel { overflow-y: auto; }
+            .btn-preset { padding: 3px 0; font-size: 0.55rem; }
+            .btn-main { padding: 6px; font-size: 0.85rem; }
+            #timer { font-size: min(5rem, 14cqw, 8vh); padding: 0.25em 0.5em; }
+            .progress-bar { height: 5px; }
+            .flags-box { gap: 6px; }
+            .flag { width: 26px; height: 18px; }
+        }
+
+        /* MODO VERTICAL */
+        @media (max-width: 768px) and (orientation: portrait) {
+            .board { grid-template-columns: 1fr; grid-template-rows: auto 1fr 1fr; }
+            .center-panel { grid-row: 1; flex-direction: row; flex-wrap: wrap; height: auto; gap: 5px; }
+            .time-presets { width: 48%; order: 1; }
+            .timer-wrap { width: 48%; order: 2; gap: 4px; }
+            #timer { width: auto; font-size: 2rem; padding: 0.3em 0.5em; }
+            .btn-main { width: 100%; order: 3; margin-top: 2px; padding: 8px; font-size: 1rem; }
+            .side { flex-direction: row; justify-content: space-around; }
+            .score-val { font-size: 5rem; margin: 0; }
+            .btn-group { grid-template-columns: repeat(4, 1fr); width: auto; }
+            .flags-box { display: none; }
+            .aka .senshu, .ao .senshu { left: 8px; right: auto; }
+            .side { flex-wrap: wrap; align-items: center; }
+            .faults { width: 100%; justify-content: center; order: 99; margin-top: 4px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <header class="navbar">
+            <div class="dojo-brand"><img class="dojo-logo" alt="Kazoku" src="data:image/jpeg;base64,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"><div><h1 class="dojo-title">DOJO KAZOKU</h1><div class="dojo-subtitle">KEN SHIN KAN</div></div></div>
+            <div class="nav-actions">
+                <button id="btn-fullscreen" onclick="toggleFullscreen()" title="Pantalla completa">⛶</button>
+            </div>
+        </header>
+
+        <div class="nav-tabs">
+            <button class="nav-btn active" onclick="nav('board')" id="b-board">COMBATE</button>
+            <button class="nav-btn" onclick="nav('history')" id="b-history">HISTORIAL</button>
+        </div>
+
+        <main class="content">
+            <div id="page-board" class="page active">
+                <div class="board">
+                    <div class="side aka">
+                        <div class="senshu" id="senshu-aka" onclick="toggleSenshu('aka')" title="Senshu">S</div>
+                        <span style="font-weight: 900; font-size: clamp(0.8rem, 1.8vmin, 1.8rem); letter-spacing: 1px;">AKA</span>
+                        <div class="score-val" id="s-aka">0</div>
+                        <div class="btn-group">
+                            <button class="btn-p" onclick="updateP('aka', 1)">+1<small>YUKO</small></button>
+                            <button class="btn-p" onclick="updateP('aka', 2)">+2<small>WAZA-ARI</small></button>
+                            <button class="btn-p" onclick="updateP('aka', 3)">+3<small>IPPON</small></button>
+                            <button class="btn-p" onclick="updateP('aka', -1)" style="font-size: 0.6rem; opacity: 0.6;">-1</button>
+                        </div>
+                        <div class="faults" id="f-aka">
+                            <div class="fault" data-lvl="1" title="Chukoku" onclick="setFault('aka',1)"></div>
+                            <div class="fault" data-lvl="2" title="Keikoku" onclick="setFault('aka',2)"></div>
+                            <div class="fault" data-lvl="3" title="Hansoku-Chui" onclick="setFault('aka',3)"></div>
+                            <div class="fault" data-lvl="4" title="Hansoku" onclick="setFault('aka',4)"></div>
+                            <div class="fault" data-lvl="5" title="Shikkaku" onclick="setFault('aka',5)"></div>
+                        </div>
+                    </div>
+
+                    <div class="center-panel">
+                        <div class="time-presets">
+                            <button class="btn-preset" onclick="setT(60)">1:00</button>
+                            <button class="btn-preset" onclick="setT(90)">1:30</button>
+                            <button class="btn-preset" onclick="setT(120)">2:00</button>
+                            <button class="btn-preset" onclick="setT(180)">3:00</button>
+                        </div>
+
+                        <div class="timer-wrap">
+                            <div id="timer">02:00</div>
+                            <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+                        </div>
+                        
+                        <button class="btn-main" id="t-ctrl" onclick="toggleTimer()">START</button>
+
+                        <div class="flags-box">
+                            <div class="flag red" onclick="this.classList.toggle('active')"></div>
+                            <div class="flag white" onclick="this.classList.toggle('active')"></div>
+                        </div>
+
+                        <button onclick="resetMatch()" style="background:none; border:none; color:#444; font-size:0.6rem; text-decoration: underline; cursor:pointer;">RESETEAR PELEA</button>
+                    </div>
+
+                    <div class="side ao">
+                        <div class="senshu" id="senshu-ao" onclick="toggleSenshu('ao')" title="Senshu">S</div>
+                        <span style="font-weight: 900; font-size: clamp(0.8rem, 1.8vmin, 1.8rem); letter-spacing: 1px;">AO</span>
+                        <div class="score-val" id="s-ao">0</div>
+                        <div class="btn-group">
+                            <button class="btn-p" onclick="updateP('ao', 1)">+1<small>YUKO</small></button>
+                            <button class="btn-p" onclick="updateP('ao', 2)">+2<small>WAZA-ARI</small></button>
+                            <button class="btn-p" onclick="updateP('ao', 3)">+3<small>IPPON</small></button>
+                            <button class="btn-p" onclick="updateP('ao', -1)" style="font-size: 0.6rem; opacity: 0.6;">-1</button>
+                        </div>
+                        <div class="faults" id="f-ao">
+                            <div class="fault" data-lvl="1" title="Chukoku" onclick="setFault('ao',1)"></div>
+                            <div class="fault" data-lvl="2" title="Keikoku" onclick="setFault('ao',2)"></div>
+                            <div class="fault" data-lvl="3" title="Hansoku-Chui" onclick="setFault('ao',3)"></div>
+                            <div class="fault" data-lvl="4" title="Hansoku" onclick="setFault('ao',4)"></div>
+                            <div class="fault" data-lvl="5" title="Shikkaku" onclick="setFault('ao',5)"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-history" class="page">
+                <div id="h-list" style="padding: 15px; overflow-y: auto; width: 100%;"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let scores = { aka: 0, ao: 0 };
+        let timeLeft = 120;
+        let timeTotal = 120;
+        let timerRunning = false;
+        let interval = null;
+
+        function nav(p) {
+            document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('page-'+p).classList.add('active');
+            document.getElementById('b-'+p).classList.add('active');
+            if(p === 'history') renderHistory();
+        }
+
+        function updateP(s, v) {
+            scores[s] = Math.max(0, scores[s] + v);
+            document.getElementById('s-'+s).textContent = scores[s];
+        }
+
+        function setT(s) {
+            if(timerRunning) toggleTimer();
+            timeLeft = s;
+            timeTotal = s;
+            renderTime();
+        }
+
+        function toggleTimer() {
+            const btn = document.getElementById('t-ctrl');
+            if(timerRunning) {
+                clearInterval(interval);
+                btn.textContent = "START";
+                btn.style.background = "var(--aka)";
+            } else {
+                if(timeLeft <= 0) return;
+                btn.textContent = "STOP";
+                btn.style.background = "#555";
+                interval = setInterval(() => {
+                    timeLeft--;
+                    renderTime();
+                    if(timeLeft <= 0) {
+                        clearInterval(interval);
+                        saveMatch();
+                        timerRunning = false;
+                        btn.textContent = "START";
+                        btn.style.background = "var(--aka)";
+                        alert("¡TIEMPO!");
+                    }
+                }, 1000);
+            }
+            timerRunning = !timerRunning;
+        }
+
+        function renderTime() {
+            const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+            const s = (timeLeft % 60).toString().padStart(2,'0');
+            document.getElementById('timer').textContent = `${m}:${s}`;
+            const pct = timeTotal > 0 ? Math.max(0, (timeLeft / timeTotal) * 100) : 0;
+            document.getElementById('progress').style.width = (100 - pct) + '%';
+        }
+
+        function saveMatch() {
+            const h = JSON.parse(localStorage.getItem('kazoku_final_log') || "[]");
+            h.unshift({ t: new Date().toLocaleTimeString(), aka: scores.aka, ao: scores.ao });
+            localStorage.setItem('kazoku_final_log', JSON.stringify(h));
+        }
+
+        function renderHistory() {
+            const h = JSON.parse(localStorage.getItem('kazoku_final_log') || "[]");
+            document.getElementById('h-list').innerHTML = h.map(m => `
+                <div style="background:#222; padding:12px; margin-bottom:8px; border-left:5px solid var(--aka); display:flex; justify-content:space-between; border-radius:4px;">
+                    <span style="color:#888; font-size:0.8rem;">${m.t}</span>
+                    <b style="font-size:1.1rem;">AKA ${m.aka} - AO ${m.ao}</b>
+                </div>
+            `).join('') || '<p style="text-align:center; color:#555;">No hay registros aún.</p>';
+        }
+
+        function resetMatch() {
+            if(confirm("¿Reiniciar tablero para una nueva pelea?")) {
+                if(scores.aka > 0 || scores.ao > 0) saveMatch();
+                scores = {aka:0, ao:0};
+                document.getElementById('s-aka').textContent = 0;
+                document.getElementById('s-ao').textContent = 0;
+                document.querySelectorAll('.flag').forEach(f => f.classList.remove('active'));
+                document.querySelectorAll('.senshu').forEach(s => s.classList.remove('active'));
+                document.querySelectorAll('.fault').forEach(f => f.classList.remove('active'));
+                ['f-aka','f-ao'].forEach(id => document.getElementById(id).dataset.lvl = '0');
+            }
+        }
+
+        function setFault(side, lvl) {
+            const dots = document.querySelectorAll('#f-'+side+' .fault');
+            const current = parseInt(document.getElementById('f-'+side).dataset.lvl || '0');
+            const next = (current === lvl) ? lvl - 1 : lvl;
+            document.getElementById('f-'+side).dataset.lvl = next;
+            dots.forEach(d => {
+                const dl = parseInt(d.dataset.lvl);
+                d.classList.toggle('active', dl <= next);
+            });
+        }
+
+        function toggleFullscreen() {
+            const btn = document.getElementById('btn-fullscreen');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                        screen.orientation.lock('landscape').catch(() => {});
+                    }
+                    btn.classList.add('active');
+                }).catch(() => {});
+            } else {
+                document.exitFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.unlock) {
+                        try { screen.orientation.unlock(); } catch(e) {}
+                    }
+                    btn.classList.remove('active');
+                });
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            document.getElementById('btn-fullscreen').classList.toggle('active', !!document.fullscreenElement);
+        });
+
+function toggleSenshu(side) {
+            const el = document.getElementById('senshu-'+side);
+            const other = document.getElementById('senshu-'+(side === 'aka' ? 'ao' : 'aka'));
+            if(el.classList.contains('active')) {
+                el.classList.remove('active');
+            } else {
+                el.classList.add('active');
+                other.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
+
