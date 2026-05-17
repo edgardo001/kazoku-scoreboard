@@ -578,7 +578,7 @@
                         updateTimerColor();
                         saveMatch();
                         playEnd();
-                        setTimeout(() => document.getElementById('modal-tiempo').classList.add('visible'), 2800);
+                        document.getElementById('modal-tiempo').classList.add('visible');
                     }
                 }, TICK);
             }
