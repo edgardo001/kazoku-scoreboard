@@ -1,6 +1,6 @@
 # Dojo Kazoku — Gestión de Combate
 
-Marcador digital para torneos de karate. Aplicación web de una sola página (`index.html`), sin dependencias externas, que funciona directamente en el navegador.
+Marcador digital para torneos de karate. Aplicación web de una sola página (`index.html`), sin dependencias externas, que funciona directamente en el navegador. Instalable como app nativa en cualquier dispositivo.
 
 ---
 
@@ -32,13 +32,13 @@ Marcador digital para torneos de karate. Aplicación web de una sola página (`i
 
 #### Sonidos (Web Audio API)
 
-- **Aviso a 15 segundos**: dos bocinas cortas.
-- **Fin del combate (00:00)**: tres bocinas (la última más larga), seguidas del modal de aviso.
+- **Aviso a 15 segundos**: dos bocinas cortas al cruzar el umbral.
+- **Fin del combate (00:00)**: tres bocinas simultáneas al modal (la última más larga).
 - Los sonidos usan síntesis de onda sawtooth + square con distorsión para imitar una bocina de árbitro.
 
 #### Modal de fin de combate
 
-Al llegar a cero, después de reproducir el sonido completo, aparece un modal propio de la aplicación con el mensaje **¡TIEMPO! — FIN DEL COMBATE**. No interrumpe el modo pantalla completa del navegador.
+Al llegar a cero, el modal **¡TIEMPO! — FIN DEL COMBATE** y el sonido se activan simultáneamente. No interrumpe el modo pantalla completa del navegador.
 
 ### Invertir posiciones
 
@@ -58,11 +58,80 @@ Enlace **RESETEAR PELEA** en el panel central. Guarda el resultado actual en el 
 
 ---
 
+## Instalación como app (PWA)
+
+La aplicación es una **Progressive Web App**: se instala directamente desde el navegador sin pasar por una tienda de apps, funciona sin conexión a internet y abre en pantalla completa con el ícono de Kazoku.
+
+> **Requisito:** la app debe servirse desde un servidor HTTP (no funciona con `file://`). Opciones: servidor local, GitHub Pages, cualquier hosting estático.
+
+### Android / Chrome / Edge (escritorio)
+
+Al abrir la app aparece automáticamente un banner en la parte inferior con el botón **⬇ Instalar**. Al presionarlo se lanza el diálogo nativo del sistema operativo.
+
+### iPhone / iPad (Safari)
+
+Al abrir la app aparece el banner. Al presionar **⬇ Instalar** se muestra un modal con instrucciones:
+
+1. Tocar el botón **Compartir** (□↑) en Safari.
+2. Desplazarse y tocar **"Agregar a pantalla de inicio"**.
+3. Confirmar tocando **"Agregar"**.
+
+### Notas
+
+- Si la app ya está instalada, el banner no aparece.
+- El botón **✕** cierra el banner sin instalar.
+- Una vez instalada, el historial de combates persiste entre sesiones gracias a `localStorage`.
+
+---
+
+## Actualizar la app en dispositivos instalados
+
+Cuando publiques una nueva versión, los dispositivos que tienen la app instalada **no se actualizan solos** a menos que se cambie la versión del caché en `sw.js`.
+
+### Pasos para publicar una actualización
+
+1. Realiza los cambios en `index.html` (u otros archivos).
+2. Abre `sw.js` y cambia el número de versión:
+   ```js
+   // Antes
+   const VERSION = 'kazoku-v1.0.0';
+   // Después (corrección menor)
+   const VERSION = 'kazoku-v1.0.1';
+   ```
+3. Sube los archivos al servidor.
+
+### ¿Qué pasa en los dispositivos?
+
+| Momento | Comportamiento |
+|---|---|
+| Al abrir la app | El service worker detecta que hay una versión nueva y la descarga en segundo plano |
+| Misma sesión | Sigue funcionando con la versión anterior (sin interrupciones) |
+| Al cerrar y volver a abrir | Ya carga la versión nueva |
+
+> La estrategia usada es **stale-while-revalidate**: siempre sirve rápido desde caché y actualiza en background, garantizando que la próxima apertura ya tenga los cambios.
+
+### Resumen rápido
+
+**Convención de versiones (semver):**
+
+| Cambio | Ejemplo |
+|---|---|
+| Corrección de bug | `v1.0.0` → `v1.0.1` |
+| Nueva funcionalidad | `v1.0.1` → `v1.1.0` |
+| Cambio mayor / rediseño | `v1.1.0` → `v2.0.0` |
+
+```
+Nuevo cambio → subir archivos → actualizar VERSION en sw.js → subir sw.js
+```
+
+---
+
 ## Uso
 
-1. Abrir `index.html` en cualquier navegador moderno (Chrome, Edge, Firefox, Safari).
-2. No requiere servidor web ni instalación.
-3. Para un uso óptimo en torneos, activar el **modo pantalla completa** y orientar el dispositivo en horizontal.
+1. Servir la carpeta desde un servidor HTTP local o remoto.
+2. Abrir en un navegador moderno (Chrome, Edge, Firefox, Safari).
+3. Opcionalmente instalar como app desde el banner.
+4. Activar el **modo pantalla completa** y orientar el dispositivo en horizontal para uso en torneo.
 
 ---
 
@@ -78,7 +147,11 @@ Enlace **RESETEAR PELEA** en el panel central. Guarda el resultado actual en el 
 
 ```
 kazoku-scoreboard/
-└── index.html   # Aplicación completa (HTML + CSS + JS en un solo archivo)
+├── index.html      # Aplicación completa (HTML + CSS + JS)
+├── manifest.json   # Configuración PWA
+├── sw.js           # Service worker (caché offline)
+├── icon-192.png    # Ícono de instalación 192×192
+└── icon-512.png    # Ícono de instalación 512×512
 ```
 
 ---
