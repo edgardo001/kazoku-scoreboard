@@ -237,6 +237,39 @@
 
         .side { overflow: hidden; min-height: 0; }
 
+        /* BANNER PWA */
+        .pwa-banner {
+            display: none;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #1a1a1a;
+            border-top: 2px solid var(--aka);
+            padding: 10px 16px;
+            z-index: 8888;
+            align-items: center; justify-content: space-between; gap: 10px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.6);
+        }
+        .pwa-banner.visible { display: flex; }
+        .pwa-banner-text { font-size: 0.78rem; color: #ccc; line-height: 1.4; }
+        .pwa-banner-text strong { color: white; display: block; margin-bottom: 2px; }
+        .pwa-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .pwa-btn-install {
+            background: var(--aka); color: white; border: none;
+            padding: 8px 16px; border-radius: 6px;
+            font-weight: 800; font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+        }
+        .pwa-btn-install:active { opacity: 0.7; }
+        .pwa-btn-close {
+            background: #333; color: #aaa; border: 1px solid #555;
+            padding: 8px 10px; border-radius: 6px;
+            font-size: 0.8rem; cursor: pointer;
+        }
+
+        /* MODAL iOS */
+        .modal-ios .modal-box { max-width: 320px; }
+        .modal-ios .modal-title { font-size: clamp(1.2rem, 3vmin, 2rem); color: white; }
+        .modal-ios-steps { text-align: left; color: #ccc; font-size: 0.85rem; line-height: 1.8; margin-top: 12px; }
+        .modal-ios-steps span { color: #ffeb3b; font-weight: bold; }
+
         /* MODAL TIEMPO */
         .modal-overlay {
             display: none;
@@ -426,6 +459,31 @@
                 <div id="h-list" style="padding: 15px; overflow-y: auto; width: 100%;"></div>
             </div>
         </main>
+    </div>
+
+    <!-- Banner instalación PWA (Chrome/Android/Edge) -->
+    <div class="pwa-banner" id="pwa-banner">
+        <div class="pwa-banner-text">
+            <strong>Instalar aplicación</strong>
+            Agrega Kazoku a tu pantalla de inicio para usarla sin conexión.
+        </div>
+        <div class="pwa-banner-actions">
+            <button class="pwa-btn-install" id="pwa-btn-install">⬇ Instalar</button>
+            <button class="pwa-btn-close" onclick="closePwaBanner()">✕</button>
+        </div>
+    </div>
+
+    <!-- Modal instrucciones iOS -->
+    <div class="modal-overlay modal-ios" id="modal-ios">
+        <div class="modal-box">
+            <div class="modal-title">Instalar en iPhone/iPad</div>
+            <div class="modal-ios-steps">
+                1. Toca el botón <span>Compartir</span> (□↑) en Safari<br>
+                2. Desplázate y toca <span>"Agregar a pantalla de inicio"</span><br>
+                3. Confirma tocando <span>"Agregar"</span>
+            </div>
+            <button class="modal-btn" onclick="document.getElementById('modal-ios').classList.remove('visible')">Entendido</button>
+        </div>
     </div>
 
     <div class="modal-overlay" id="modal-tiempo">
@@ -729,6 +787,43 @@
 
         // Inicializar display
         renderTime();
+
+        // PWA install
+        let deferredPrompt = null;
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        const isInStandalone = window.matchMedia('(display-mode: fullscreen)').matches
+                            || window.matchMedia('(display-mode: standalone)').matches
+                            || navigator.standalone === true;
+
+        if (!isInStandalone) {
+            if (isIos) {
+                // iOS: mostrar banner con instrucciones manuales
+                document.getElementById('pwa-banner').classList.add('visible');
+                document.getElementById('pwa-btn-install').textContent = '⬇ Instalar';
+                document.getElementById('pwa-btn-install').onclick = () => {
+                    document.getElementById('modal-ios').classList.add('visible');
+                };
+            } else {
+                // Chrome/Android/Edge: esperar evento beforeinstallprompt
+                window.addEventListener('beforeinstallprompt', e => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    document.getElementById('pwa-banner').classList.add('visible');
+                    document.getElementById('pwa-btn-install').onclick = async () => {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        deferredPrompt = null;
+                        if (outcome === 'accepted') closePwaBanner();
+                    };
+                });
+            }
+        }
+
+        window.addEventListener('appinstalled', () => closePwaBanner());
+
+        function closePwaBanner() {
+            document.getElementById('pwa-banner').classList.remove('visible');
+        }
 
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('./sw.js').catch(() => {});
