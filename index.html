@@ -94,6 +94,8 @@
         }
         .aka .senshu { right: 8px; }
         .ao .senshu { left: 8px; }
+        .board.swapped .aka .senshu { right: auto; left: 8px; }
+        .board.swapped .ao .senshu { left: auto; right: 8px; }
 
         .faults {
             display: flex; gap: 6px;
@@ -160,11 +162,43 @@
         .btn-preset:active { background: var(--aka); }
 
         #timer {
-            font-size: min(7rem, 18cqw, 10vmin);
             font-family: 'Courier New', monospace; font-weight: 900;
-            background: #000; padding: 0.5em 0.6em; border-radius: 8px; border: 1px solid #333;
+            background: #000; padding: 0.4em 0.5em; border-radius: 8px; border: 1px solid #333;
             line-height: 1; white-space: nowrap;
+            display: flex; align-items: center; justify-content: center; gap: 2px;
+            color: white;
+            transition: color 0.2s;
         }
+        #timer.running { color: #ffeb3b; }
+        #timer.warning { color: #f44336; }
+
+        .timer-digit-col {
+            display: flex; flex-direction: column; align-items: center; gap: 1px;
+        }
+        .timer-main-digits {
+            display: flex; align-items: center; gap: 2px;
+        }
+        .t-num {
+            font-size: min(6rem, 16cqw, 9vmin);
+            line-height: 1;
+        }
+        .t-colon {
+            font-size: min(6rem, 16cqw, 9vmin);
+            line-height: 1; align-self: center;
+        }
+        .t-cs {
+            font-size: min(2rem, 5cqw, 3vmin);
+            align-self: flex-end; margin-bottom: 0.1em; opacity: 0.85;
+        }
+        .t-arrow {
+            background: none; border: none; color: inherit;
+            font-size: min(1rem, 2.5cqw, 1.5vmin);
+            cursor: pointer; opacity: 0.6; padding: 0 4px; line-height: 1;
+            transition: opacity 0.15s;
+            user-select: none;
+        }
+        .t-arrow:hover { opacity: 1; }
+        .t-arrow:active { opacity: 0.4; }
         .center-panel { container-type: inline-size; }
 
         .timer-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 90%; }
@@ -209,7 +243,11 @@
             .center-panel { overflow-y: auto; }
             .btn-preset { padding: 3px 0; font-size: 0.55rem; }
             .btn-main { padding: 6px; font-size: 0.85rem; }
-            #timer { font-size: min(5rem, 14cqw, 8vh); padding: 0.25em 0.5em; }
+            #timer { padding: 0.25em 0.5em; }
+            .t-num { font-size: min(4rem, 10cqw, 7vh); }
+            .t-colon { font-size: min(4rem, 10cqw, 7vh); }
+            .t-cs { font-size: min(1.4rem, 4cqw, 2.5vh); }
+            .t-arrow { font-size: min(0.7rem, 1.8cqw, 1.2vh); }
             .progress-bar { height: 5px; }
             .flags-box { gap: 6px; }
             .flag { width: 26px; height: 18px; }
@@ -221,13 +259,17 @@
             .center-panel { grid-row: 1; flex-direction: row; flex-wrap: wrap; height: auto; gap: 5px; }
             .time-presets { width: 48%; order: 1; }
             .timer-wrap { width: 48%; order: 2; gap: 4px; }
-            #timer { width: auto; font-size: 2rem; padding: 0.3em 0.5em; }
+            #timer { width: auto; padding: 0.3em 0.5em; }
+            .t-num { font-size: 1.8rem; }
+            .t-colon { font-size: 1.8rem; }
+            .t-cs { font-size: 0.9rem; }
             .btn-main { width: 100%; order: 3; margin-top: 2px; padding: 8px; font-size: 1rem; }
             .side { flex-direction: row; justify-content: space-around; }
             .score-val { font-size: 5rem; margin: 0; }
             .btn-group { grid-template-columns: repeat(4, 1fr); width: auto; }
             .flags-box { display: none; }
-            .aka .senshu, .ao .senshu { left: 8px; right: auto; }
+            .aka .senshu, .ao .senshu,
+            .board.swapped .aka .senshu, .board.swapped .ao .senshu { left: 8px; right: auto; }
             .side { flex-wrap: wrap; align-items: center; }
             .faults { width: 100%; justify-content: center; order: 99; margin-top: 4px; }
         }
@@ -279,7 +321,22 @@
                         </div>
 
                         <div class="timer-wrap">
-                            <div id="timer">02:00</div>
+                            <div id="timer">
+                                <div class="timer-main-digits">
+                                    <div class="timer-digit-col">
+                                        <button class="t-arrow" onclick="adjustTime(60,1)" title="+1 min">▲</button>
+                                        <span class="t-num" id="t-min">02</span>
+                                        <button class="t-arrow" onclick="adjustTime(60,-1)" title="-1 min">▼</button>
+                                    </div>
+                                    <span class="t-colon">:</span>
+                                    <div class="timer-digit-col">
+                                        <button class="t-arrow" onclick="adjustTime(1,1)" title="+1 seg">▲</button>
+                                        <span class="t-num" id="t-sec">00</span>
+                                        <button class="t-arrow" onclick="adjustTime(1,-1)" title="-1 seg">▼</button>
+                                    </div>
+                                    <span class="t-cs" id="t-cs">.00</span>
+                                </div>
+                            </div>
                             <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
                         </div>
                         
@@ -289,6 +346,8 @@
                             <div class="flag red" onclick="this.classList.toggle('active')"></div>
                             <div class="flag white" onclick="this.classList.toggle('active')"></div>
                         </div>
+
+                        <button onclick="swapSides()" title="Invertir posiciones" style="background:#222; border:1px solid #444; color:#aaa; font-size:clamp(0.65rem,1.3vmin,1.1rem); font-weight:bold; padding:clamp(6px,1.2vmin,12px) 0; border-radius:4px; cursor:pointer; width:90%;">⇄ INVERTIR POSICIONES</button>
 
                         <button onclick="resetMatch()" style="background:none; border:none; color:#444; font-size:0.6rem; text-decoration: underline; cursor:pointer;">RESETEAR PELEA</button>
                     </div>
@@ -322,10 +381,80 @@
 
     <script>
         let scores = { aka: 0, ao: 0 };
-        let timeLeft = 120;
-        let timeTotal = 120;
+        // timeLeft en centésimas (1/100 seg)
+        let timeLeft = 12000;
+        let timeTotal = 12000;
         let timerRunning = false;
         let interval = null;
+        let warnedAt15 = false;
+        let audioCtx = null;
+
+        function getAudioCtx() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+
+        function playHorn(startTime, duration, freq, vol = 1.0) {
+            try {
+                const ctx = getAudioCtx();
+                const t = startTime;
+
+                // Onda principal: sawtooth (timbre de bocina)
+                const osc1 = ctx.createOscillator();
+                osc1.type = 'sawtooth';
+                osc1.frequency.value = freq;
+
+                // Segunda armónica para cuerpo
+                const osc2 = ctx.createOscillator();
+                osc2.type = 'square';
+                osc2.frequency.value = freq * 1.5;
+
+                // Distorsión suave
+                const wave = ctx.createWaveShaper();
+                const curve = new Float32Array(256);
+                for(let i = 0; i < 256; i++) {
+                    const x = (i * 2) / 256 - 1;
+                    curve[i] = (Math.PI + 80) * x / (Math.PI + 80 * Math.abs(x));
+                }
+                wave.curve = curve;
+
+                const gain1 = ctx.createGain();
+                const gain2 = ctx.createGain();
+                const master = ctx.createGain();
+
+                osc1.connect(gain1); gain1.connect(wave);
+                osc2.connect(gain2); gain2.connect(wave);
+                wave.connect(master);
+                master.connect(ctx.destination);
+
+                gain1.gain.value = 0.7;
+                gain2.gain.value = 0.3;
+
+                // Envelope: ataque rápido, sustain, caída brusca
+                master.gain.setValueAtTime(0, t);
+                master.gain.linearRampToValueAtTime(vol, t + 0.03);
+                master.gain.setValueAtTime(vol, t + duration - 0.08);
+                master.gain.linearRampToValueAtTime(0, t + duration);
+
+                osc1.start(t); osc1.stop(t + duration);
+                osc2.start(t); osc2.stop(t + duration);
+            } catch(e) {}
+        }
+
+        function playWarning() {
+            const ctx = getAudioCtx();
+            const now = ctx.currentTime;
+            playHorn(now, 0.5, 520, 0.85);
+            playHorn(now + 0.65, 0.5, 520, 0.85);
+        }
+
+        function playEnd() {
+            const ctx = getAudioCtx();
+            const now = ctx.currentTime;
+            playHorn(now, 0.6, 440, 1.0);
+            playHorn(now + 0.75, 0.6, 440, 1.0);
+            playHorn(now + 1.5, 1.2, 480, 1.0);
+        }
 
         function nav(p) {
             document.querySelectorAll('.page').forEach(pg => pg.classList.remove('active'));
@@ -341,42 +470,90 @@
         }
 
         function setT(s) {
-            if(timerRunning) toggleTimer();
-            timeLeft = s;
-            timeTotal = s;
+            if(timerRunning) stopTimer();
+            timeLeft = s * 100;
+            timeTotal = s * 100;
+            warnedAt15 = false;
+            renderTime();
+            updateTimerColor();
+        }
+
+        function adjustTime(unitSec, delta) {
+            if(timerRunning) return;
+            timeLeft = Math.max(0, timeLeft + unitSec * delta * 100);
+            timeTotal = Math.max(timeTotal, timeLeft);
+            if(timeLeft > timeTotal) timeTotal = timeLeft;
+            warnedAt15 = false;
             renderTime();
         }
 
+        function stopTimer() {
+            clearInterval(interval);
+            interval = null;
+            timerRunning = false;
+            const btn = document.getElementById('t-ctrl');
+            btn.textContent = "START";
+            btn.style.background = "var(--aka)";
+            updateTimerColor();
+        }
+
         function toggleTimer() {
+            // Desbloquear AudioContext en interacción de usuario
+            try { getAudioCtx().resume(); } catch(e) {}
+
             const btn = document.getElementById('t-ctrl');
             if(timerRunning) {
-                clearInterval(interval);
-                btn.textContent = "START";
-                btn.style.background = "var(--aka)";
+                stopTimer();
             } else {
                 if(timeLeft <= 0) return;
                 btn.textContent = "STOP";
                 btn.style.background = "#555";
+                timerRunning = true;
+                updateTimerColor();
+                const TICK = 50; // ms por tick (2 centésimas)
                 interval = setInterval(() => {
-                    timeLeft--;
+                    timeLeft = Math.max(0, timeLeft - Math.round(TICK / 10));
                     renderTime();
+                    updateTimerColor();
+                    if(timeLeft <= 1500 && !warnedAt15) {
+                        warnedAt15 = true;
+                        playWarning();
+                    }
                     if(timeLeft <= 0) {
                         clearInterval(interval);
-                        saveMatch();
+                        interval = null;
                         timerRunning = false;
                         btn.textContent = "START";
                         btn.style.background = "var(--aka)";
-                        alert("¡TIEMPO!");
+                        updateTimerColor();
+                        saveMatch();
+                        playEnd();
+                        setTimeout(() => alert("¡TIEMPO!"), 2800);
                     }
-                }, 1000);
+                }, TICK);
             }
-            timerRunning = !timerRunning;
+        }
+
+        function updateTimerColor() {
+            const el = document.getElementById('timer');
+            el.classList.remove('running', 'warning');
+            if(timerRunning) {
+                if(timeLeft <= 1500) {
+                    el.classList.add('warning');
+                } else {
+                    el.classList.add('running');
+                }
+            }
         }
 
         function renderTime() {
-            const m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
-            const s = (timeLeft % 60).toString().padStart(2,'0');
-            document.getElementById('timer').textContent = `${m}:${s}`;
+            const totalSec = Math.floor(timeLeft / 100);
+            const cs = timeLeft % 100;
+            const m = Math.floor(totalSec / 60).toString().padStart(2,'0');
+            const s = (totalSec % 60).toString().padStart(2,'0');
+            document.getElementById('t-min').textContent = m;
+            document.getElementById('t-sec').textContent = s;
+            document.getElementById('t-cs').textContent = '.' + cs.toString().padStart(2,'0');
             const pct = timeTotal > 0 ? Math.max(0, (timeLeft / timeTotal) * 100) : 0;
             document.getElementById('progress').style.width = (100 - pct) + '%';
         }
@@ -444,7 +621,7 @@
             document.getElementById('btn-fullscreen').classList.toggle('active', !!document.fullscreenElement);
         });
 
-function toggleSenshu(side) {
+        function toggleSenshu(side) {
             const el = document.getElementById('senshu-'+side);
             const other = document.getElementById('senshu-'+(side === 'aka' ? 'ao' : 'aka'));
             if(el.classList.contains('active')) {
@@ -454,6 +631,43 @@ function toggleSenshu(side) {
                 other.classList.remove('active');
             }
         }
+
+        let sidesSwapped = false;
+
+        function swapSides() {
+            const board = document.querySelector('.board');
+            const aka = document.querySelector('.side.aka');
+            const ao = document.querySelector('.side.ao');
+            const center = document.querySelector('.center-panel');
+            sidesSwapped = !sidesSwapped;
+            board.classList.toggle('swapped', sidesSwapped);
+            board.innerHTML = '';
+            if(sidesSwapped) {
+                board.appendChild(ao);
+                board.appendChild(center);
+                board.appendChild(aka);
+            } else {
+                board.appendChild(aka);
+                board.appendChild(center);
+                board.appendChild(ao);
+            }
+        }
+
+        // Scroll del mouse sobre minutos o segundos
+        document.getElementById('t-min').addEventListener('wheel', e => {
+            e.preventDefault();
+            if(timerRunning) return;
+            adjustTime(60, e.deltaY < 0 ? 1 : -1);
+        }, { passive: false });
+
+        document.getElementById('t-sec').addEventListener('wheel', e => {
+            e.preventDefault();
+            if(timerRunning) return;
+            adjustTime(1, e.deltaY < 0 ? 1 : -1);
+        }, { passive: false });
+
+        // Inicializar display
+        renderTime();
     </script>
 </body>
 </html>
