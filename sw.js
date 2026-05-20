@@ -25,6 +25,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Ignorar peticiones que no sean HTTP/HTTPS (por ejemplo, extensiones de navegador)
+  if (!e.request.url.startsWith('http')) return;
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       // Sirve desde caché y actualiza en background (stale-while-revalidate)
