@@ -2,6 +2,10 @@
 
 Marcador digital para torneos de karate. Aplicación web de una sola página (`index.html`), sin dependencias externas, que funciona directamente en el navegador. Instalable como app nativa en cualquier dispositivo.
 
+### 🌐 Acceso Online
+Puedes abrir y usar la aplicación directamente desde cualquier dispositivo haciendo clic en:
+👉 **[https://edgardo001.github.io/kazoku-scoreboard/](https://edgardo001.github.io/kazoku-scoreboard/)**
+
 ---
 
 ## Características
@@ -128,10 +132,10 @@ Nuevo cambio → subir archivos → actualizar VERSION en sw.js → subir sw.js
 
 ## Uso
 
-1. Servir la carpeta desde un servidor HTTP local o remoto.
-2. Abrir en un navegador moderno (Chrome, Edge, Firefox, Safari).
-3. Opcionalmente instalar como app desde el banner.
-4. Activar el **modo pantalla completa** y orientar el dispositivo en horizontal para uso en torneo.
+1. **Acceso Rápido (Recomendado):** Abre la aplicación directamente desde la web en **[https://edgardo001.github.io/kazoku-scoreboard/](https://edgardo001.github.io/kazoku-scoreboard/)**.
+2. **Acceso Local:** Alternativamente, puedes servir la carpeta desde un servidor HTTP local o remoto.
+3. **Instalación:** Opcionalmente, instala la aplicación como una PWA desde el banner de instalación.
+4. **Pantalla Completa:** Activa el **modo pantalla completa** (botón **⛶**) y orienta tu dispositivo de forma horizontal para una mejor experiencia durante los combates de torneo.
 
 ---
 
