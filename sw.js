@@ -1,5 +1,5 @@
 // Incrementar VERSION en cada actualización publicada (semver)
-const VERSION = 'kazoku-v1.0.1';
+const VERSION = 'kazoku-v1.0.3';
 const ASSETS = [
   './',
   './index.html',
@@ -30,7 +30,8 @@ self.addEventListener('fetch', e => {
       // Sirve desde caché y actualiza en background (stale-while-revalidate)
       const network = fetch(e.request).then(res => {
         if (res && res.status === 200 && res.type === 'basic') {
-          caches.open(VERSION).then(c => c.put(e.request, res.clone()));
+          const resClone = res.clone();
+          caches.open(VERSION).then(c => c.put(e.request, resClone));
         }
         return res;
       }).catch(() => null);
