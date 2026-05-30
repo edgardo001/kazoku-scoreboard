@@ -1,5 +1,5 @@
 // Incrementar VERSION en cada actualización publicada (semver)
-const VERSION = 'kazoku-v1.0.4';
+const VERSION = 'kazoku-v1.0.5';
 const ASSETS = [
   './',
   './index.html',
