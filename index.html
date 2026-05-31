@@ -700,6 +700,7 @@
                         clearInterval(interval);
                         interval = null;
                         timerRunning = false;
+                        document.querySelector('.time-presets').classList.remove('blocked');
                         btn.textContent = "START";
                         btn.style.background = "var(--aka)";
                         updateTimerColor();
